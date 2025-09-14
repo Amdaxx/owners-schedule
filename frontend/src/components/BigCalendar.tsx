@@ -6,7 +6,7 @@
   import React, { useCallback, useMemo, useEffect, useState } from 'react';
   import { Calendar, momentLocalizer, Event } from 'react-big-calendar';
   import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-  import moment from 'moment';
+  import moment from 'moment-timezone';
   import { useDispatch, useSelector } from 'react-redux';
   // We used to use date-fns-tz but switched to moment for consistency
   import { 
@@ -25,6 +25,13 @@
   // Bring in the calendar styles so it looks good
   import 'react-big-calendar/lib/css/react-big-calendar.css';
   import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+  
+  // Custom CSS to adjust event positioning without changing sizes
+  const customStyles = `
+    .rbc-event {
+      transform: translateY(45px) !important;
+    }
+  `;
 
   // Make sure Monday starts the week (because that makes more sense)
   moment.updateLocale('en', {
@@ -91,21 +98,18 @@
       // Start with UTC time as our foundation
       const utcTime = new Date(occurrence.occurrence_start_utc);
       
-      // Figure out the timezone offset (this gets tricky with daylight saving time)
-      const getTimezoneOffsetMinutes = (tz: string): number => {
-        // Pick a random date to calculate the offset (we use a fixed date for consistency)
-        const testDate = new Date('2024-01-15T12:00:00Z'); // Use a fixed date for consistent offset
-        
-        // Calculate how many minutes difference there is
-        const utcTime = testDate.getTime();
-        const localTime = new Date(testDate.toLocaleString('en-US', { timeZone: tz })).getTime();
+      // Figure out the timezone offset using the actual event date
+      const getTimezoneOffsetMinutes = (tz: string, eventDate: Date): number => {
+        // Use the actual event date to calculate the correct offset for that date
+        const utcTime = eventDate.getTime();
+        const localTime = new Date(eventDate.toLocaleString('en-US', { timeZone: tz })).getTime();
         const offsetMs = localTime - utcTime;
         
         return Math.round(offsetMs / 60000); // Convert to minutes
       };
       
       // Adjust the time for the user's timezone
-      const offsetMinutes = getTimezoneOffsetMinutes(timezone);
+      const offsetMinutes = getTimezoneOffsetMinutes(timezone, utcTime);
       const start = new Date(utcTime.getTime() + (offsetMinutes * 60000));
       const end = new Date(start.getTime() + occurrence.duration_minutes * 60000);
       
@@ -236,7 +240,15 @@
         const finalDuration = Math.max(newDurationMinutes, 15);
         
         // Convert to UTC for API call
-        const newStartUTC = moment(start).utc().toISOString();
+        // Treat the drag position as the new time in the selected timezone
+        const newStartUTC = moment.tz([
+          start.getFullYear(),
+          start.getMonth(), 
+          start.getDate(),
+          start.getHours(),
+          start.getMinutes(),
+          start.getSeconds()
+        ], timezone).utc().toISOString();
         
         // Use the original occurrence time for exceptions
         const originalOccurrenceTime = occurrence.is_exception && occurrence.original_occurrence_start_utc 
@@ -512,12 +524,14 @@
 
 
     return (
-      <div 
-        style={{ 
-          height: '600px',
-          animation: 'fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
-        }}
-      >
+      <>
+        <style>{customStyles}</style>
+        <div 
+          style={{ 
+            height: '600px',
+            animation: 'fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+          }}
+        >
         
         <DragAndDropCalendar
           localizer={localizer}
@@ -531,7 +545,7 @@
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
         onEventDrop={handleEventDrop}
-          onEventDragStart={handleEventDragStart}
+          onDragStart={handleEventDragStart}
            // Allow dragging events between days
            draggableAccessor={() => true}
            onView={() => {}} // Empty handler to prevent warning
@@ -554,9 +568,9 @@
                 {label}
               </div>
             ),
-            timeSlotWrapper: ({ children }: { children: React.ReactNode }) => (
+            timeSlotWrapper: (props: any) => (
               <div style={{ height: '90px', minHeight: '90px' }}>
-                {children}
+                {props.children}
               </div>
             )
           }}
@@ -591,7 +605,8 @@
            // Make sure we can see all events properly
            doShowMoreDrillDown={true}
         />
-      </div>
+        </div>
+      </>
     );
   };
 

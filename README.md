@@ -1,20 +1,3 @@
-# Owner's Schedule
-
-## Tech Stack
-
-**Frontend:**
-- React 18 with TypeScript
-- Redux Toolkit for state management
-- react-big-calendar for the calendar UI
-- Luxon for date/timezone handling
-
-
-**Backend:**
-- Django 5.0 with Django REST Framework
-- PostgreSQL for data storage
-- python-dateutil for recurrence logic
-
-## Getting Started
 
 ### Backend Setup
 
@@ -342,5 +325,3 @@ Currently the application runs without authentication for simplicity, but in pro
 - **ISO 27001** - information security management system principles
 - **SOC 2 Type II** - security, availability, and confidentiality controls
 - **NIST Cybersecurity Framework** - identify, protect, detect, respond, recover
-
-
