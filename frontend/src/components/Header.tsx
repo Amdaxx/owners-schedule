@@ -82,7 +82,7 @@ const Header: React.FC = () => {
 
   // Get weekly stats
   const weekInfo = getWeekInfo(selectedWeek, timezone);
-  const cacheKey = createCacheKey(weekInfo.weekStart, weekInfo.weekEnd, timezone);
+  const cacheKey = createCacheKey(weekInfo.weekStart, weekInfo.weekEnd, 'UTC'); // Always use UTC cache
   const occurrences = useSelector((state: any) => selectOccurrencesForWeek(state, cacheKey));
 
   const eventStats = useMemo(() => {
